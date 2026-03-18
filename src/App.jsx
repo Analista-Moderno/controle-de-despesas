@@ -24,41 +24,50 @@ const InputGroup = ({ label, children }) => (
   </div>
 );
 
-const MoneyInput = ({ value, onChange, placeholder = "0.00" }) => (
-  <div className="relative">
-    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">R$</span>
-    <input
-      type="number"
-      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-shadow text-slate-800"
-      value={value === 0 ? '' : value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      placeholder={placeholder}
-    />
-  </div>
-);
+// Generic Localized Numeric Input
+const NumericInput = ({ value, onChange, placeholder, prefix, suffix, className }) => {
+  const [displayValue, setDisplayValue] = useState(value === 0 ? '' : value.toString().replace('.', ','));
 
-const PercentInput = ({ value, onChange, placeholder = "0.00" }) => (
-  <div className="relative">
-    <input
-      type="number"
-      className="w-full pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-shadow text-slate-800"
-      value={value === 0 ? '' : value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      placeholder={placeholder}
-    />
-    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">%</span>
-  </div>
-);
+  useEffect(() => {
+    const newVal = value === 0 ? '' : value.toString().replace('.', ',');
+    if (newVal !== displayValue) setDisplayValue(newVal);
+  }, [value]);
 
-const NumberInput = ({ value, onChange, placeholder = "0" }) => (
-  <input
-    type="number"
-    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-shadow text-slate-800"
-    value={value === 0 ? '' : value}
-    onChange={(e) => onChange(Number(e.target.value))}
-    placeholder={placeholder}
-  />
-);
+  const handleChange = (e) => {
+    let input = e.target.value;
+    // Only allow numbers and one comma or dot
+    if (/[^0-9,.]/.test(input)) return;
+    
+    setDisplayValue(input);
+    
+    // Normalize to dot for calculation
+    const normalized = input.replace(',', '.');
+    const num = parseFloat(normalized);
+    if (!isNaN(num)) {
+      onChange(num);
+    } else if (input === "") {
+      onChange(0);
+    }
+  };
+
+  return (
+    <div className="relative">
+      {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">{prefix}</span>}
+      <input
+        type="text"
+        className={`w-full py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-shadow text-slate-800 ${prefix ? 'pl-9' : 'pl-3'} ${suffix ? 'pr-8' : 'pr-3'} ${className}`}
+        value={displayValue}
+        onChange={handleChange}
+        placeholder={placeholder}
+      />
+      {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">{suffix}</span>}
+    </div>
+  );
+};
+
+const MoneyInput = (props) => <NumericInput {...props} prefix="R$" placeholder="0,00" />;
+const PercentInput = (props) => <NumericInput {...props} suffix="%" placeholder="0,00" />;
+const NumberInput = (props) => <NumericInput {...props} placeholder="0" />;
 
 function App() {
   // === STATE DEFINITIONS (Persisted & Default 0) ===
@@ -147,7 +156,7 @@ function App() {
     const roas = totalAdSpend > 0 ? (revenue / totalAdSpend) : null;
 
     return {
-      cmvPercent, mcPercent, mcR$,
+      cmvR$, cmvPercent, mcPercent, mcR$,
       totalFixedExp, totalInvestments, totalMonthlyFixed,
       breakEvenR$, breakEvenUnits,
       revenue, netProfit, netProfitMargin, roas
@@ -388,8 +397,11 @@ function App() {
                   </div>
                   
                   <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:border-red-200 transition-colors">
-                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">CMV (%)</p>
-                    <p className="text-xl font-bold text-red-500">{formatPct(metrics.cmvPercent)}</p>
+                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">CMV (%) / (R$)</p>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-xl font-bold text-red-500">{formatPct(metrics.cmvPercent)}</p>
+                      <p className="text-sm font-semibold text-slate-400">({formatBRL(metrics.cmvR$)})</p>
+                    </div>
                   </div>
                   <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:border-green-200 transition-colors">
                     <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">Margem Contrib.</p>
@@ -474,7 +486,8 @@ function App() {
               {/* Margens e Risco */}
               <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
                 <h3 className="font-bold text-slate-800 mb-3 text-sm uppercase tracking-wider">Margens e Risco</h3>
-                <div className="flex justify-between border-b border-slate-200 py-1.5 text-sm"><span>CMV (Custo Variável):</span> <strong className="text-red-500">{formatPct(metrics.cmvPercent)}</strong></div>
+                <div className="flex justify-between border-b border-slate-200 py-1.5 text-sm"><span>CMV Unitário (R$):</span> <strong className="text-red-500">{formatBRL(metrics.cmvR$)}</strong></div>
+                <div className="flex justify-between border-b border-slate-200 py-1.5 text-sm"><span>CMV proporcional (%):</span> <strong className="text-red-500">{formatPct(metrics.cmvPercent)}</strong></div>
                 <div className="flex justify-between border-b border-slate-200 py-1.5 text-sm"><span>Margem Contribuição:</span> <strong className="text-green-600">{formatPct(metrics.mcPercent)}</strong></div>
                 <div className="flex justify-between border-b border-slate-200 py-1.5 text-sm"><span>Ponto de Equilíbrio:</span> <strong className="text-amber-600">{formatBRL(metrics.breakEvenR$)}</strong></div>
                 <div className="flex justify-between mt-2 pt-2 text-base font-bold text-slate-900">
