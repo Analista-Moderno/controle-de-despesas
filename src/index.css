@@ -1,0 +1,37 @@
+/* We are using TailwindCSS via CDN in index.html for rapid prototyping as requested. */
+/* Just adding a few utilities to match the reference HTML's custom scrollbar and print hiding. */
+
+:root {
+  font-family: 'Inter', sans-serif;
+  background-color: #f8fafc; /* slate-50 */
+}
+
+/* Custom scrollbar for webkit to keep it clean */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Hide Spinners on Num Inputs */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Base resets handled by Tailwind */
